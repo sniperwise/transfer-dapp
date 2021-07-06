@@ -7,6 +7,6 @@ const getContract = (abi, address, web3) => {
   return new _web3.eth.Contract(abi, address);
 };
 
-export const getTokenContract = (web3, chainId) => {
-  return getContract(tokenAbi, getTokenAddress(chainId), web3);
+export const getTokenContract = (web3, chainId, index) => {
+  return getContract(tokenAbi, getTokenAddress(chainId, index), web3);
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import BigNumber from 'bignumber.js';
 import Web3 from 'web3';
@@ -26,6 +26,7 @@ const HeroContainer = styled.div`
     margin-top: 5px;
   }
 `;
+const tokenSymbols = ['SToken', 'XXX'];
 
 const Hero = () => {
   const [address, setAddress] = useState('');
@@ -34,11 +35,12 @@ const Hero = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [forceUpdate, setForceUpdate] = useState(false);
   const [transactions, setTransactions] = useState([]);
+  const [tokenIndex, setTokenIndex] = useState(0);
 
   const { account, chainId } = useWeb3React();
 
-  const tokenBalance = useBalance(forceUpdate);
-  const { onTransfer, pending } = useTransfer(address, amount);
+  const tokenBalance = useBalance(forceUpdate, tokenIndex);
+  const { onTransfer, pending } = useTransfer(address, amount, tokenIndex);
 
   const onSubmit = async () => {
     if (!Web3.utils.isAddress(address) || address === account) {
@@ -69,6 +71,7 @@ const Hero = () => {
         to: address,
         amount,
         hash: res.transactionHash,
+        name: tokenSymbols[tokenIndex],
       };
       const newHistory = [item, ...transactions];
       setTransactions(newHistory);
@@ -77,21 +80,21 @@ const Hero = () => {
     }
   };
 
-  const registerToken = async () => {
+  const registerToken = useCallback(async () => {
     const tokenAdded = await window.ethereum.request({
       method: 'wallet_watchAsset',
       params: {
         type: 'ERC20',
         options: {
-          address: getTokenAddress(chainId),
-          symbol: 'SToken',
+          address: getTokenAddress(chainId, tokenIndex),
+          symbol: tokenSymbols[tokenIndex],
           decimals: 18,
         },
       },
     });
 
     return tokenAdded;
-  };
+  }, [chainId, tokenIndex]);
 
   const clearTransaction = () => {
     setTransactions([]);
@@ -114,6 +117,20 @@ const Hero = () => {
         {account ? (
           <Form>
             {isError && <Alert variant="danger">{errorMsg}</Alert>}
+            <Form.Group controlId="select">
+              <Form.Label>Select Token</Form.Label>
+              <Form.Control
+                as="select"
+                defaultValue={0}
+                onChange={(e) => setTokenIndex(Number(e.target.value))}
+              >
+                {tokenSymbols.map((name, index) => (
+                  <option value={index} key={index}>
+                    {name}
+                  </option>
+                ))}
+              </Form.Control>
+            </Form.Group>
             <Form.Group controlId="address">
               <Form.Label>Address</Form.Label>
               <Form.Control
@@ -136,7 +153,7 @@ const Hero = () => {
                 }}
               />
               <Form.Text className="text-muted">
-                Wallet Balance: {tokenBalance.div(1e18).toFormat(2)} STokens
+                Wallet Balance: {tokenBalance.div(1e18).toFormat(2)} {tokenSymbols[tokenIndex]}
               </Form.Text>
             </Form.Group>
             {pending ? (
@@ -146,8 +163,12 @@ const Hero = () => {
                 Transfer
               </Button>
             )}
-            <Button onClick={() => registerToken()} variant="info" style={{ marginLeft: '10px' }}>
-              Add Token to your wallet
+            <Button
+              onClick={() => registerToken()}
+              variant="info"
+              style={{ marginLeft: '10px' }}
+            >
+              Add {tokenSymbols[tokenIndex]} to your wallet
             </Button>
             {transactions.length > 0 && (
               <>
@@ -160,7 +181,7 @@ const Hero = () => {
                         target="_blank"
                         rel="noreferrer"
                       >
-                        {`Sent ${item.amount} STokens from ${item.from} to ${item.to}`}
+                        {`Sent ${item.amount} ${item.name}s from ${item.from} to ${item.to}`}
                       </a>
                     </li>
                   ))}
@@ -172,7 +193,9 @@ const Hero = () => {
             )}
           </Form>
         ) : (
-          <Alert variant="warning">Please connect your wallet and select the Rinkeby Test Network.</Alert>
+          <Alert variant="warning">
+            Please connect your wallet and select the Rinkeby Test Network.
+          </Alert>
         )}
       </HeroContainer>
     </Container>

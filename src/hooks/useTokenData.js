@@ -48,10 +48,10 @@ export const useApprove = (targetAddress, amount) => {
   return { onApprove: handleApprove };
 };
 
-export const useTransfer = (targetAddress, amount) => {
+export const useTransfer = (targetAddress, amount, index) => {
   const [pending, setPending] = useState(false);
   const { account } = useWeb3React();
-  const contract = useToken();
+  const contract = useToken(index);
 
   const handleTransfer = useCallback(async () => {
     try {
@@ -71,12 +71,12 @@ export const useTransfer = (targetAddress, amount) => {
   return { onTransfer: handleTransfer, pending };
 };
 
-export const useBalance = (forceUpdate) => {
+export const useBalance = (forceUpdate, index) => {
   const [tokenBalance, setTokenBalance] = useState(new BigNumber(0));
 
   const { account, chainId } = useWeb3React();
   const { fastRefresh } = useRefresh();
-  const tokenContract = useToken();
+  const tokenContract = useToken(index);
 
   useEffect(() => {
     const getTokenInfo = async () => {
